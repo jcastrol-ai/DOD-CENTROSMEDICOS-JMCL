@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Centros Médicos SCTR – Luz del Sur</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;width:100%;overflow:hidden;font-family:"Segoe UI",Arial,sans-serif;background:#f0f4f8;}
+#app{display:flex;flex-direction:column;height:100vh;height:-webkit-fill-available;overflow:hidden;}
+
+/* HEADER */
+header{background:linear-gradient(135deg,#003580 0%,#0057b8 60%,#f5a623 100%);color:white;padding:8px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 3px 10px rgba(0,0,0,.3);flex-shrink:0;z-index:20;}
+.logo{height:38px;width:auto;flex-shrink:0;filter:drop-shadow(0 1px 3px rgba(0,0,0,.3));}
+.header-text{flex:1;min-width:0;}
+header h1{font-size:1rem;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+header p{font-size:.65rem;opacity:.88;margin-top:2px;}
+.header-dept{font-size:.68rem;font-weight:600;opacity:.9;border-left:2px solid rgba(255,255,255,.35);padding-left:8px;line-height:1.35;flex-shrink:0;}
+
+/* FILTROS ZONA */
+#leyenda{background:white;padding:6px 10px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;border-bottom:2px solid #dde3ea;flex-shrink:0;box-shadow:0 2px 4px rgba(0,0,0,.06);}
+.ley-label,.esp-label{font-size:.65rem;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.8px;}
+.ley-item{display:flex;align-items:center;gap:4px;font-size:.7rem;font-weight:600;color:#333;cursor:pointer;padding:4px 9px;border-radius:20px;border:2px solid transparent;transition:all .15s;user-select:none;min-height:30px;}
+.ley-item.off{opacity:.3;}
+.dot{width:10px;height:10px;border-radius:50%;border:1.5px solid rgba(0,0,0,.15);flex-shrink:0;}
+#btn-todos{margin-left:auto;background:#003580;color:white;border:none;padding:5px 11px;border-radius:20px;font-size:.7rem;font-weight:600;cursor:pointer;min-height:30px;}
+
+/* FILTROS ESPECIALIDAD */
+#especialidades{background:#f5f7fa;padding:5px 10px;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;border-bottom:2px solid #dde3ea;flex-shrink:0;}
+.esp-item{font-size:.68rem;font-weight:700;cursor:pointer;padding:4px 10px;border-radius:20px;border:2px solid transparent;transition:all .15s;user-select:none;color:white;min-height:30px;display:flex;align-items:center;}
+.esp-item.off{opacity:.3;filter:grayscale(.6);}
+
+/* LAYOUT PRINCIPAL - desktop: fila, móvil vertical: columna */
+#main{display:flex;flex:1;overflow:hidden;position:relative;min-height:0;}
+
+/* LISTA LATERAL (desktop) y LISTA INFERIOR (móvil vertical) */
+#lista{
+  width:280px;
+  background:white;
+  overflow-y:auto;
+  border-right:1px solid #dde3ea;
+  flex-shrink:0;
+}
+.lista-seccion{
+  padding:6px 10px 3px;font-size:.6rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:.8px;
+  background:#f8f9fa;border-bottom:1px solid #eee;
+  border-top:1px solid #eee;position:sticky;top:0;z-index:2;
+}
+.lista-item{
+  display:flex;align-items:flex-start;gap:8px;
+  padding:8px 10px;border-bottom:1px solid #f0f0f0;
+  cursor:pointer;transition:background .15s;
+}
+.lista-item:hover,.lista-item:active{background:#f0f5ff;}
+.lista-item.activo{background:#e8efff;}
+.item-pin{
+  width:22px;height:22px;border-radius:50% 50% 50% 0;
+  transform:rotate(-45deg);flex-shrink:0;margin-top:2px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 4px rgba(0,0,0,.2);
+}
+.item-pin span{transform:rotate(45deg);color:white;font-size:9px;font-weight:bold;}
+.item-info{flex:1;min-width:0;}
+.item-nombre{
+  font-size:.74rem;font-weight:600;color:#222;
+  line-height:1.25;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;
+}
+.item-dir{font-size:.63rem;color:#777;margin-top:2px;line-height:1.3;}
+.item-tel{font-size:.63rem;color:#0057b8;margin-top:2px;font-weight:500;}
+
+/* MAPA */
+#mapa-wrap{flex:1;display:flex;flex-direction:column;position:relative;min-width:0;}
+#map{width:100%;flex:1;min-height:0;}
+#contador{
+  position:absolute;top:8px;right:8px;background:white;
+  padding:4px 10px;border-radius:20px;font-size:.7rem;
+  font-weight:600;color:#333;box-shadow:0 2px 8px rgba(0,0,0,.15);z-index:5;
+}
+
+/* PANEL DETALLE - fixed para que siempre flote sobre todo */
+#detalle{
+  display:none;position:fixed;bottom:16px;
+  left:50%;transform:translateX(-50%);
+  background:white;border-radius:12px;
+  box-shadow:0 8px 32px rgba(0,0,0,.3);
+  width:92%;max-width:360px;overflow:hidden;
+  z-index:99999;animation:slideUp .2s ease;
+}
+@keyframes slideUp{
+  from{transform:translateX(-50%) translateY(24px);opacity:0}
+  to{transform:translateX(-50%) translateY(0);opacity:1}
+}
+.det-header{padding:10px 14px 8px;color:white;position:relative;}
+.det-tipo{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;opacity:.85;}
+.det-nombre{font-size:.9rem;font-weight:700;line-height:1.25;margin-top:2px;padding-right:26px;}
+.det-body{padding:9px 14px 5px;}
+.det-row{display:flex;align-items:flex-start;gap:6px;font-size:.73rem;color:#444;margin-bottom:5px;line-height:1.4;}
+.det-icon{font-size:13px;flex-shrink:0;margin-top:1px;}
+.det-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+.det-tag{font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:10px;color:white;text-transform:uppercase;}
+.det-btn{
+  display:block;margin:8px 14px 12px;background:#003580;color:white;
+  border:none;padding:9px 0;border-radius:8px;font-size:.78rem;
+  font-weight:600;cursor:pointer;text-align:center;
+  text-decoration:none;width:calc(100% - 28px);
+}
+.det-btn:hover{background:#0057b8;}
+#det-cerrar{
+  position:absolute;top:8px;right:8px;
+  background:rgba(255,255,255,.25);border:none;color:white;
+  border-radius:50%;width:24px;height:24px;font-size:15px;
+  cursor:pointer;line-height:1;
+}
+
+/* Ocultar botón flotante y modal — no se usan en el nuevo layout */
+#btn-lista-movil{display:none !important;}
+#lista-modal{display:none !important;}
+
+/* ── MÓVIL VERTICAL (portrait) ──────────────────────────── */
+@media (max-width:767px) and (orientation:portrait){
+  header h1{font-size:.85rem;}
+  header p{font-size:.6rem;}
+  .header-dept{display:none;}
+  .esp-item,.ley-item{font-size:.65rem;padding:3px 7px;}
+
+  /* Apilar mapa + lista en columna */
+  #main{flex-direction:column;}
+
+  /* Mapa ocupa 45% de la altura disponible */
+  #mapa-wrap{
+    flex:0 0 45%;
+    min-height:0;
+    border-bottom:2px solid #dde3ea;
+  }
+
+  /* Lista-wrap ocupa el resto en portrait */
+  #lista-wrap{
+    width:100% !important;
+  }
+  #lista{
+    width:100% !important;
+    flex:1;
+    border-right:none;
+    border-top:none;
+    overflow-y:auto;
+    display:block !important;
+  }
+
+  /* Detalle sube un poco para no tapar nada */
+  #detalle{bottom:12px;width:96%;}
+
+  /* Secciones de la lista más compactas */
+  .lista-seccion{padding:5px 10px 3px;font-size:.58rem;}
+  .lista-item{padding:7px 10px;}
+  .item-nombre{font-size:.72rem;}
+  .item-dir{font-size:.61rem;}
+  .item-tel{font-size:.61rem;}
+}
+
+/* ── MÓVIL HORIZONTAL (landscape) ──────────────────────── */
+@media (max-width:900px) and (orientation:landscape){
+  header h1{font-size:.85rem;}
+  header p{font-size:.6rem;}
+  .header-dept{display:none;}
+  .esp-item,.ley-item{font-size:.65rem;padding:3px 7px;}
+
+  /* Fila: lista a la izquierda, mapa a la derecha */
+  #main{flex-direction:row;}
+  #lista-wrap{width:240px !important;} #lista{display:block !important;}
+  #mapa-wrap{flex:1;}
+}
+
+/* ── DESKTOP ─────────────────────────────────────────────── */
+@media (min-width:768px) and (orientation:landscape),
+       (min-width:901px){
+  #lista{width:280px;display:block;}
+}
+
+/* Pantallas muy pequeñas */
+@media(max-width:380px){
+  .ley-label,.esp-label{display:none;}
+  #btn-todos{padding:4px 8px;font-size:.63rem;}
+  .esp-item,.ley-item{font-size:.61rem;padding:3px 6px;}
+}
+
+/* ── BOTONES TOGGLE ─────────────────────────────────── */
+.toggle-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  background:#003580;color:white;
+  padding:4px 10px;flex-shrink:0;
+  font-size:.68rem;font-weight:700;letter-spacing:.4px;
+  user-select:none;cursor:default;
+  box-shadow:0 1px 4px rgba(0,0,0,.15);
+}
+.toggle-bar .toggle-grupo{
+  display:flex;align-items:center;gap:8px;
+}
+.toggle-btn{
+  background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+  color:white;border-radius:6px;padding:3px 10px;
+  font-size:.67rem;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;gap:5px;
+  transition:background .15s;white-space:nowrap;
+  -webkit-appearance:none;appearance:none;
+}
+.toggle-btn:hover{background:rgba(255,255,255,.28);}
+.toggle-btn .arrow{
+  display:inline-block;transition:transform .25s;font-size:.7rem;
+}
+.toggle-btn.collapsed .arrow{transform:rotate(-90deg);}
+
+/* Contenedor colapsable con transición suave */
+.colapsable{
+  overflow:hidden;
+  transition:max-height .3s ease, opacity .3s ease;
+  max-height:200px;
+  opacity:1;
+}
+.colapsable.oculto{
+  max-height:0 !important;
+  opacity:0;
+}
+
+/* Lista-wrap colapsable */
+#lista-wrap{
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  transition:max-height .3s ease, opacity .3s ease, width .3s ease, flex .3s ease;
+}
+/* Desktop/landscape: ancho fijo */
+@media(min-width:768px),(orientation:landscape){
+  #lista-wrap{
+    width:280px;
+    flex-shrink:0;
+    max-height:9999px;
+  }
+  #lista-wrap.oculto{
+    width:0 !important;
+    flex-shrink:1 !important;
+    opacity:0;
+  }
+}
+/* Portrait móvil: altura variable */
+@media(max-width:767px) and (orientation:portrait){
+  #lista-wrap{
+    width:100%;
+    flex:1;
+    max-height:9999px;
+    opacity:1;
+  }
+  #lista-wrap.oculto{
+    flex:0 0 0px !important;
+    max-height:0 !important;
+    opacity:0;
+  }
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<header>
+  <img class="logo" src="data:image/jpeg;base64,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" alt="Luz del Sur"/>
+  <div class="header-text">
+    <h1>Centros Médicos SCTR</h1>
+    <p>Luz del Sur — Accidentes de Trabajo</p>
+  </div>
+  <div class="header-dept">Departamento de Operadores<br>Distribución</div>
+</header>
+
+<!-- Barra de controles toggle -->
+<div class="toggle-bar">
+  <div class="toggle-grupo">
+    <button class="toggle-btn" id="btn-toggle-filtros" onclick="toggleFiltros()">
+      <span>🔽 Filtros</span><span class="arrow">▾</span>
+    </button>
+    <button class="toggle-btn" id="btn-toggle-lista" onclick="toggleLista()">
+      <span>📋 Lista</span><span class="arrow">▾</span>
+    </button>
+  </div>
+  <div id="contador" style="background:rgba(255,255,255,.15);color:white;box-shadow:none;font-size:.67rem;padding:3px 10px;border-radius:20px;font-weight:700;"></div>
+</div>
+
+<!-- Filtros colapsables -->
+<div id="filtros-wrap" class="colapsable">
+<div id="leyenda">
+  <span class="ley-label">Zona:</span>
+  <div class="ley-item" data-cat="zona-centro" style="border-color:#E63946;background:#fff0f1"><div class="dot" style="background:#E63946"></div>Centro</div>
+  <div class="ley-item" data-cat="zona-este"   style="border-color:#E07B39;background:#fff5ee"><div class="dot" style="background:#E07B39"></div>Este</div>
+  <div class="ley-item" data-cat="zona-sur"    style="border-color:#2A9D5C;background:#f0fff6"><div class="dot" style="background:#2A9D5C"></div>Sur</div>
+  <div class="ley-item" data-cat="essalud"     style="border-color:#7B5EA7;background:#f5f0ff"><div class="dot" style="background:#7B5EA7"></div>ESSALUD</div>
+  <div class="ley-item" data-cat="minsa"       style="border-color:#1D6FA4;background:#f0f6ff"><div class="dot" style="background:#1D6FA4"></div>MINSA</div>
+  <button id="btn-todos">Ver todos</button>
+</div>
+
+<div id="especialidades">
+  <span class="esp-label">Esp:</span>
+  <div class="esp-item" data-esp="Urgencias"     style="background:#E63946">🚨 Urgencias</div>
+  <div class="esp-item" data-esp="Neurología"    style="background:#8B3A8B">🧠 Neurología</div>
+  <div class="esp-item" data-esp="Quemaduras"    style="background:#E07B39">🔥 Quemaduras</div>
+  <div class="esp-item" data-esp="Traumatología" style="background:#2A7D9D">🦴 Traumatología</div>
+  <div class="esp-item" data-esp="ESSALUD"       style="background:#7B5EA7">🏥 ESSALUD</div>
+  <div class="esp-item" data-esp="MINSA"         style="background:#1D6FA4">🏛 MINSA</div>
+</div>
+</div><!-- /filtros-wrap -->
+
+<div id="main">
+  <div id="lista-wrap">
+    <div id="lista"></div>
+  </div>
+  <div id="mapa-wrap">
+    <div id="map"></div>
+    <div id="detalle">
+      <div class="det-header" id="det-header">
+        <button id="det-cerrar">✕</button>
+        <div class="det-tipo" id="det-tipo"></div>
+        <div class="det-nombre" id="det-nombre"></div>
+      </div>
+      <div class="det-body">
+        <div class="det-row"><span class="det-icon">📍</span><span id="det-dir"></span></div>
+        <div class="det-row"><span class="det-icon">📞</span><span id="det-tel"></span></div>
+        <div class="det-tags" id="det-tags"></div>
+      </div>
+      <a id="det-gmaps" class="det-btn" target="_blank">📍 Abrir en Google Maps</a>
+    </div>
+  </div>
+</div>
+</div>
+
+
+
+<script>
+// ── DATOS ────────────────────────────────────────────────────────────────────
+const COLORES={"zona-centro":"#E63946","zona-este":"#E07B39","zona-sur":"#2A9D5C","essalud":"#7B5EA7","minsa":"#1D6FA4"};
+const LABELS={"zona-centro":"Zona Centro","zona-este":"Zona Este / Noreste","zona-sur":"Zona Sur","essalud":"Referencia ESSALUD","minsa":"Referencia MINSA"};
+
+const centros=[
+  {nombre:"Clínica San Felipe",dir:"Av. Gregorio Escobedo 650, Jesús María",tel:"219-0000 anexo 8138",lat:-12.0859598,lng:-77.054335,cat:"zona-centro",tags:["Urgencias"]},
+  {nombre:"Clínica Internacional Lima",dir:"Jr. Washington 1471, Cercado de Lima",tel:"619-6100 anexo 5503/5504",lat:-12.0592468,lng:-77.0389233,cat:"zona-centro",tags:["Urgencias","Quemaduras","Traumatología"]},
+  {nombre:"Clínica Good Hope",dir:"Malecón Balta 965, Miraflores",tel:"610-7300 anexo 4533",lat:-12.1255888,lng:-77.034436,cat:"zona-centro",tags:["Urgencias"]},
+  {nombre:"Clínica Stella Maris",dir:"Av. Paso de los Andes 923, Pueblo Libre",tel:"463-6666 anexo 1",lat:-12.0710406,lng:-77.0592408,cat:"zona-centro",tags:["Urgencias"]},
+  {nombre:"Clínica Sanna San Borja",dir:"Av. Guardia Civil 337, San Borja",tel:"635-5000 opción 0",lat:-12.0919978,lng:-77.008465,cat:"zona-centro",tags:["Urgencias","Traumatología"]},
+  {nombre:"Clínica Internacional San Borja",dir:"Av. Guardia Civil 385, San Borja",tel:"619-6100 anexo 2050",lat:-12.0924759,lng:-77.0089011,cat:"zona-centro",tags:["Urgencias","Traumatología"]},
+  {nombre:"Clínica Vesalio",dir:"Calle Joseph Thompson 140, San Borja",tel:"618-9999 opción 1",lat:-12.1063797,lng:-77.0072358,cat:"zona-centro",tags:["Urgencias"]},
+  {nombre:"Clínica Anglo Americana – Sede Central",dir:"Calle Alfredo Salazar 350, San Isidro",tel:"616-8900 anexo 1145/1142",lat:-12.109117,lng:-77.0393952,cat:"zona-centro",tags:["Urgencias","Traumatología"]},
+  {nombre:"Clínica Javier Prado",dir:"Av. Javier Prado Este 499, San Isidro",tel:"211-4141 opción 0",lat:-12.0913028,lng:-77.0283738,cat:"zona-centro",tags:["Urgencias"]},
+  {nombre:"Clínica Ricardo Palma",dir:"Av. Javier Prado Este 1066, San Isidro",tel:"224-2224 anexo 4341/4340",lat:-12.0906021,lng:-77.0182762,cat:"zona-centro",tags:["Urgencias","Neurología","Quemaduras","Traumatología"]},
+  {nombre:"Clínica Sanna El Golf",dir:"Av. Aurelio Miró Quesada 1030, San Isidro",tel:"635-5000 opción 0",lat:-12.0987938,lng:-77.0514572,cat:"zona-centro",tags:["Urgencias","Traumatología"]},
+  {nombre:"Clínica Anglo Americana – La Molina",dir:"Av. La Fontana 362, La Molina",tel:"616-8990 opción 0",lat:-12.0744319,lng:-76.9559726,cat:"zona-este",tags:["Urgencias","Traumatología"]},
+  {nombre:"Clínica Montefiori",dir:"Av. Separadora Industrial 380, La Molina",tel:"437-5151 anexo 1012",lat:-12.0656322,lng:-76.9663407,cat:"zona-este",tags:["Urgencias"]},
+  {nombre:"Clínica San Juan Bautista",dir:"Av. Próceres de la Independencia 1764, SJL",tel:"610-4545",lat:-12.0040249,lng:-77.0066865,cat:"zona-este",tags:["Urgencias"]},
+  {nombre:"Clínica Padre Luis Tezza",dir:"Av. El Polo 570, Santiago de Surco",tel:"610-5050 anexo 123",lat:-12.1032942,lng:-76.9718807,cat:"zona-este",tags:["Urgencias","Traumatología"]},
+  {nombre:"Clínica San Pablo – Sede Central",dir:"Av. El Polo 789, Santiago de Surco",tel:"610-3333",lat:-12.100168,lng:-76.9713223,cat:"zona-este",tags:["Urgencias","Neurología","Quemaduras","Traumatología"]},
+  {nombre:"Clínica Maison de Santé",dir:"Av. Chorrillos 171, Chorrillos",tel:"619-6000 opción 3",lat:-12.1572092,lng:-77.0227865,cat:"zona-sur",tags:["Urgencias"]},
+  {nombre:"Clínica Santa Martha del Sur",dir:"Av. Belisario Suárez 998, SJM",tel:"615-6767 anexo 3125",lat:-12.1631328,lng:-76.9654419,cat:"zona-sur",tags:["Urgencias","Traumatología"]},
+  {nombre:"Hospital Edgardo Rebagliati",dir:"Av. Domingo Cueto 220, Jesús María",tel:"265-4901 anexo 3250",lat:-12.0779355,lng:-77.0404273,cat:"essalud",tags:["ESSALUD"]},
+  {nombre:"Hospital Guillermo Almenara",dir:"Av. Grau 700, La Victoria",tel:"324-2983 anexo 44034",lat:-12.0593133,lng:-77.022818,cat:"essalud",tags:["ESSALUD","Quemaduras"]},
+  {nombre:"Hospital III Emergencias Grau",dir:"Av. Grau 351, Cercado de Lima",tel:"572-8800",lat:-12.0576,lng:-77.0282,cat:"essalud",tags:["ESSALUD"]},
+  {nombre:"Hospital III Suarez Angamos",dir:"Av. Angamos Este 261, Miraflores",tel:"241-2154",lat:-12.1218,lng:-77.0092,cat:"essalud",tags:["ESSALUD"]},
+  {nombre:"Hospital II Vitarte",dir:"Av. San Martín de Porres 265, Vitarte",tel:"494-2976",lat:-12.0351,lng:-76.9266,cat:"essalud",tags:["ESSALUD"]},
+  {nombre:"Hospital I Carlos Alcántara Butterfield",dir:"Los Constructores 1201, La Molina",tel:"349-2288",lat:-12.0820,lng:-76.9501,cat:"essalud",tags:["ESSALUD"]},
+  {nombre:"Hospital I Jorge Voto Bernales",dir:"Km 3.5 Carretera Central, Santa Anita",tel:"354-4747",lat:-12.0392,lng:-76.9631,cat:"essalud",tags:["ESSALUD"]},
+  {nombre:"Hospital I Uldarico Rocca Fernández",dir:"Av. Separadora Industrial, VES",tel:"287-5266",lat:-12.2119,lng:-76.9487,cat:"essalud",tags:["ESSALUD"]},
+  {nombre:"Hospital II Guillermo Kaelin de la Fuente",dir:"Cruce Av. Defensores, VMT",tel:"205-1200",lat:-12.1844,lng:-76.9524,cat:"essalud",tags:["ESSALUD"]},
+  {nombre:"Hospital Nacional Hipólito Unanue",dir:"Av. Cesar Vallejo 1390, El Agustino",tel:"362-5700",lat:-12.0473,lng:-77.0022,cat:"minsa",tags:["MINSA"]},
+  {nombre:"Hospital Nacional Arzobispo Loayza",dir:"Av. Alfonso Ugarte 848, Cercado",tel:"614-4646",lat:-12.0542,lng:-77.0481,cat:"minsa",tags:["MINSA"]},
+  {nombre:"Hospital Nacional Dos de Mayo",dir:"Av. Grau Cdra. 13, Barrios Altos",tel:"328-0028",lat:-12.0576,lng:-77.0172,cat:"minsa",tags:["MINSA"]},
+  {nombre:"Hospital Emergencias José Casimiro Ulloa",dir:"Av. Roosevelt 6355, Miraflores",tel:"204-0900",lat:-12.1357,lng:-77.0069,cat:"minsa",tags:["MINSA"]},
+  {nombre:"Hospital de Huaycán",dir:"Av. José Carlos Mariátegui s/n, Ate Vitarte",tel:"371-6797",lat:-12.0053,lng:-76.8631,cat:"minsa",tags:["MINSA"]},
+  {nombre:"Hospital de Vitarte",dir:"Av. Nicolás Ayllón 5880, Ate Vitarte",tel:"351-4484",lat:-12.0354,lng:-76.9168,cat:"minsa",tags:["MINSA"]},
+  {nombre:"Hospital José Agurto Tello de Chosica",dir:"Jr. Arequipa 214-218, Chosica",tel:"418-3232",lat:-11.9336,lng:-76.6981,cat:"minsa",tags:["MINSA"]},
+  {nombre:"Hospital María Auxiliadora",dir:"Av. Miguel Iglesias 968, SJM",tel:"217-1818",lat:-12.1617,lng:-76.9744,cat:"minsa",tags:["MINSA"]},
+  {nombre:"Hospital Emergencias Villa El Salvador",dir:"Av. Pastor Sevilla y Av. 200 Millas, VES",tel:"640-9875 opción 1",lat:-12.2108,lng:-76.9386,cat:"minsa",tags:["MINSA"]},
+];
+
+// ── ESTADO ───────────────────────────────────────────────────────────────────
+const filtros={"zona-centro":true,"zona-este":true,"zona-sur":true,"essalud":true,"minsa":true};
+const filtrosEsp={"Urgencias":true,"Neurología":true,"Quemaduras":true,"Traumatología":true,"ESSALUD":true,"MINSA":true};
+
+function centroVisible(c){
+  return filtros[c.cat] && c.tags.some(t=>filtrosEsp[t]===true);
+}
+
+// ── MAPA con Google Maps JS API sin key (modo embed estático de marcadores) ──
+// Usamos Leaflet desde CDN confiable. Si falla, fallback a iframe.
+let map=null, marcadores=[];
+
+function initMap(){
+  // Leaflet cargado inline para evitar dependencias externas
+  if(typeof L === "undefined"){ initFallback(); return; }
+
+  map = L.map("map",{zoomControl:true}).setView([-12.08,-77.02],11);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+    attribution:"© OpenStreetMap",maxZoom:19
+  }).addTo(map);
+
+  // Crear marcadores SVG coloreados
+  centros.forEach((c,i)=>{
+    const color = COLORES[c.cat];
+    const svgIcon = L.divIcon({
+      className:"",
+      html:`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="38" viewBox="0 0 28 38">
+        <path d="M14 1C7.373 1 2 6.373 2 13c0 9 12 24 12 24S26 22 26 13C26 6.373 20.627 1 14 1z"
+          fill="${color}" stroke="white" stroke-width="1.5"/>
+        <circle cx="14" cy="13" r="6" fill="white" opacity=".92"/>
+        <text x="14" y="17" font-size="8" font-weight="bold" text-anchor="middle"
+          fill="${color}" font-family="Arial">✚</text>
+      </svg>`,
+      iconSize:[28,38], iconAnchor:[14,38], popupAnchor:[0,-40]
+    });
+
+    const marker = L.marker([c.lat,c.lng],{icon:svgIcon})
+      .bindPopup(`<div style="font-family:Arial;min-width:180px">
+        <div style="background:${color};color:white;padding:7px 10px;margin:-13px -20px 8px;border-radius:6px 6px 0 0">
+          <div style="font-size:10px;opacity:.85;text-transform:uppercase;letter-spacing:1px">${LABELS[c.cat]}</div>
+          <div style="font-size:13px;font-weight:700;margin-top:2px">${c.nombre}</div>
+        </div>
+        <div style="font-size:11px;color:#555;margin-bottom:4px">📍 ${c.dir}</div>
+        <div style="font-size:11px;color:#0057b8;font-weight:600">📞 ${c.tel}</div>
+        <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.nombre+' '+c.dir)}"
+          target="_blank"
+          style="display:block;margin-top:8px;background:#003580;color:white;text-align:center;padding:5px;border-radius:5px;font-size:11px;font-weight:700;text-decoration:none">
+          Ver en Google Maps
+        </a>
+      </div>`,{maxWidth:240})
+      .on("click",()=>seleccionar(i));
+
+    marcadores.push({marker,cat:c.cat,tags:c.tags,visible:true});
+    marker.addTo(map);
+  });
+
+  actualizarMarcadores();
+}
+
+function initFallback(){
+  // Si Leaflet no carga, usar iframe básico
+  const wrap=document.getElementById("mapa-wrap");
+  const mapDiv=document.getElementById("map");
+  const iframe=document.createElement("iframe");
+  iframe.src="https://maps.google.com/maps?q=-12.08,-77.02&z=11&output=embed";
+  iframe.style.cssText="width:100%;height:100%;border:none;flex:1;";
+  mapDiv.style.display="none";
+  wrap.appendChild(iframe);
+}
+
+// ── ACTUALIZAR MARCADORES Y ZOOM ─────────────────────────────────────────────
+function actualizarMarcadores(){
+  if(!map) return;
+  const bounds = L.latLngBounds();
+  let hayVisibles = false;
+
+  centros.forEach((c,i)=>{
+    const m = marcadores[i];
+    if(!m) return;
+    const visible = centroVisible(c);
+    if(visible){
+      m.marker.addTo(map);
+      bounds.extend([c.lat,c.lng]);
+      hayVisibles = true;
+    } else {
+      map.removeLayer(m.marker);
+    }
+  });
+
+  // Ajustar zoom para mostrar todos los visibles
+  if(hayVisibles){
+    map.fitBounds(bounds, {padding:[40,40], maxZoom:15, animate:true});
+  }
+}
+
+// ── SELECCIONAR CLÍNICA ───────────────────────────────────────────────────────
+function seleccionar(i){
+  const c = centros[i];
+  document.querySelectorAll(".lista-item").forEach(el=>el.classList.remove("activo"));
+  document.querySelectorAll(`.lista-item[data-i="${i}"]`).forEach(el=>{
+    el.classList.add("activo");
+    el.scrollIntoView({block:"nearest"});
+  });
+
+  // Centrar y zoom en el marcador seleccionado
+  if(map){
+    map.setView([c.lat,c.lng],16,{animate:true});
+    marcadores[i].marker.openPopup();
+  }
+
+  // Panel detalle
+  const color=COLORES[c.cat];
+  document.getElementById("det-header").style.background=color;
+  document.getElementById("det-tipo").textContent=LABELS[c.cat];
+  document.getElementById("det-nombre").textContent=c.nombre;
+  document.getElementById("det-dir").textContent=c.dir;
+  document.getElementById("det-tel").textContent=c.tel;
+  document.getElementById("det-tags").innerHTML=c.tags.map(t=>`<span class="det-tag" style="background:${color}">${t}</span>`).join("");
+  document.getElementById("det-gmaps").href=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.nombre+" "+c.dir)}`;
+  document.getElementById("detalle").style.display="block";
+
+}
+
+document.getElementById("det-cerrar").addEventListener("click",()=>{
+  document.getElementById("detalle").style.display="none";
+  document.querySelectorAll(".lista-item").forEach(el=>el.classList.remove("activo"));
+  // Volver a mostrar todos los visibles
+  actualizarMarcadores();
+});
+
+// ── LISTA ────────────────────────────────────────────────────────────────────
+function construirLista(){
+  const listaEl = document.getElementById("lista");
+  listaEl.innerHTML = "";
+  const grupos = {};
+  centros.forEach((c,i)=>{
+    if(!centroVisible(c)) return;
+    if(!grupos[c.cat]) grupos[c.cat]=[];
+    grupos[c.cat].push({...c,i});
+  });
+  Object.keys(LABELS).forEach(cat=>{
+    if(!grupos[cat]||!grupos[cat].length) return;
+    const color = COLORES[cat];
+    const sec = document.createElement("div");
+    sec.className = "lista-seccion";
+    sec.style.color = color;
+    sec.textContent = LABELS[cat]+"  ("+grupos[cat].length+")";
+    listaEl.appendChild(sec);
+    grupos[cat].forEach(c=>{
+      const d = document.createElement("div");
+      d.className = "lista-item";
+      d.dataset.i = c.i;
+      d.innerHTML =
+        '<div class="item-pin" style="background:'+COLORES[c.cat]+'"><span>✚</span></div>'+
+        '<div class="item-info">'+
+          '<div class="item-nombre">'+c.nombre+'</div>'+
+          '<div class="item-dir">'+c.dir+'</div>'+
+          '<div class="item-tel">📞 '+c.tel+'</div>'+
+        '</div>';
+      d.addEventListener("click",()=>seleccionar(c.i));
+      listaEl.appendChild(d);
+    });
+  });
+  actualizarContador();
+  actualizarMarcadores();
+}
+
+// ── FILTROS ───────────────────────────────────────────────────────────────────
+document.querySelectorAll(".ley-item").forEach(item=>{
+  item.addEventListener("click",()=>{
+    const cat=item.dataset.cat;
+    filtros[cat]=!filtros[cat];
+    item.classList.toggle("off",!filtros[cat]);
+    construirLista();
+  });
+});
+document.querySelectorAll(".esp-item").forEach(item=>{
+  item.addEventListener("click",()=>{
+    const esp=item.dataset.esp;
+    filtrosEsp[esp]=!filtrosEsp[esp];
+    item.classList.toggle("off",!filtrosEsp[esp]);
+    construirLista();
+  });
+});
+document.getElementById("btn-todos").addEventListener("click",()=>{
+  Object.keys(filtros).forEach(k=>filtros[k]=true);
+  Object.keys(filtrosEsp).forEach(k=>filtrosEsp[k]=true);
+  document.querySelectorAll(".ley-item").forEach(el=>el.classList.remove("off"));
+  document.querySelectorAll(".esp-item").forEach(el=>el.classList.remove("off"));
+  construirLista();
+});
+
+function actualizarContador(){
+  const n = centros.filter(c=>centroVisible(c)).length;
+  const el = document.getElementById("contador");
+  if(el) el.textContent = n+" centros visibles";
+}
+
+// Recalcular mapa al rotar el dispositivo
+window.addEventListener("orientationchange",()=>{
+  setTimeout(()=>{ if(map) map.invalidateSize(); },350);
+});
+window.addEventListener("resize",()=>{
+  if(map) map.invalidateSize();
+});
+
+// ── TOGGLE FILTROS ────────────────────────────────────────────────────────────
+let filtrosVisible = true;
+function toggleFiltros(){
+  filtrosVisible = !filtrosVisible;
+  const wrap = document.getElementById("filtros-wrap");
+  const btn  = document.getElementById("btn-toggle-filtros");
+  wrap.classList.toggle("oculto", !filtrosVisible);
+  btn.classList.toggle("collapsed", !filtrosVisible);
+  btn.querySelector("span:first-child").textContent = filtrosVisible ? "🔽 Filtros" : "🔼 Filtros";
+  setTimeout(()=>{ if(map) map.invalidateSize(); }, 320);
+}
+
+// ── TOGGLE LISTA ──────────────────────────────────────────────────────────────
+let listaVisible = true;
+function toggleLista(){
+  listaVisible = !listaVisible;
+  const wrap = document.getElementById("lista-wrap");
+  const btn  = document.getElementById("btn-toggle-lista");
+  wrap.classList.toggle("oculto", !listaVisible);
+  btn.classList.toggle("collapsed", !listaVisible);
+  btn.querySelector("span:first-child").textContent = listaVisible ? "📋 Lista" : "📋 Lista";
+  // Dar tiempo a la animación y recalcular mapa
+  setTimeout(()=>{ if(map) map.invalidateSize(); }, 320);
+}
+
+// ── CARGAR LEAFLET DINÁMICAMENTE ─────────────────────────────────────────────
+(function loadLeaflet(){
+  // CSS
+  const link=document.createElement("link");
+  link.rel="stylesheet";
+  link.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+  document.head.appendChild(link);
+  // JS
+  const script=document.createElement("script");
+  script.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+  script.onload=function(){
+    initMap();
+    construirLista();
+  };
+  script.onerror=function(){
+    initFallback();
+    construirLista();
+  };
+  document.head.appendChild(script);
+})();
+</script>
+</body>
+</html>
